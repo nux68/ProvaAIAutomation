@@ -1,0 +1,36 @@
+name: Tracciamento Spostamento Project Board
+
+on:
+  project_item:
+    types: [edited]
+
+jobs:
+  track_move:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Controlla se il cambiamento riguarda lo Status (la colonna)
+        id: check_changes
+        run: |
+          # Il payload contiene le informazioni sul campo modificato
+          FIELD_NAME="${{ github.event.changes.field_value.field_name }}"
+          
+          echo "Il campo modificato è: $FIELD_NAME"
+          
+          # Se il campo modificato è lo 'Status' (la colonna della board)
+          if [ "$FIELD_NAME" = "Status" ]; then
+            FROM_STATUS="${{ github.event.changes.field_value.from.name }}"
+            TO_STATUS="${{ github.event.project_item.field_values.Status.name }}"
+            
+            echo "Spesa da: $FROM_STATUS -> a: $TO_STATUS"
+            
+            # Salviamo le variabili per i passaggi successivi
+            echo "moved=true" >> $GITHUB_OUTPUT
+            echo "from=$FROM_STATUS" >> $GITHUB_OUTPUT
+            echo "to=$TO_STATUS" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Esegui un'azione basata sullo spostamento
+        if: steps:check_changes.outputs.moved == 'true'
+        run: |
+          echo "L'issue ${{ github.event.project_item.content.title }} è stata spostata da ${{ steps.check_changes.outputs.from }} a ${{ steps.check_changes.outputs.to }}"
+          # Qui puoi inserire una chiamata curl a Slack, uno script Node.js, o usare una GitHub Action pre-fatta.
